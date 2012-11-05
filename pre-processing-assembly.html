@@ -1,0 +1,244 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Read Assembly &mdash; phyluce v0.1.0 documentation</title>
+    <link rel="stylesheet" href="_static/flasky.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="top" title="phyluce v0.1.0 documentation" href="index.html" />
+    <link rel="next" title="UCE Processing for Phylogenomics" href="uce-processing.html" />
+    <link rel="prev" title="Data Pre-processing" href="pre-processing-qc.html" />
+   
+  
+  <link media="only screen and (max-device-width: 480px)" href="_static/small_flask.css" type= "text/css" rel="stylesheet" />
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="uce-processing.html" title="UCE Processing for Phylogenomics"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="pre-processing-qc.html" title="Data Pre-processing"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">phyluce v0.1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="read-assembly">
+<h1>Read Assembly<a class="headerlink" href="#read-assembly" title="Permalink to this headline">¶</a></h1>
+<p>Once your reads are clean, you&#8217;re ready to assemble. At the moment, we use
+<a class="reference external" href="http://www.ebi.ac.uk/~zerbino/velvet/">velvet</a> and VelvetOptimiser for assembly, although I&#8217;m considering adding
+similar routines for <a class="reference external" href="http://www.bcgsc.ca/platform/bioinfo/software/abyss">ABySS</a>.</p>
+<p>Most of this process is automated using code within <a class="reference external" href="https://github.com/faircloth-lab/phyluce">phyluce</a>. But, before you
+runt the automated routines, you need to get a good idea of the kmer ranges
+within which you will assembling, prior to starting the assembly process with
+the automated code.</p>
+<p>In the following, I assume your directory structure looks like this (which
+results from <a class="reference external" href="https://github.com/faircloth-lab/illumiprocessor/">illumiprocessor</a>):</p>
+<div class="highlight-python"><pre>uce-clean/
+    genus_species1/
+        interleaved-adapter-quality-trimmed/
+            genus_species-READ1and2-interleaved.fastq.gz
+            genus_species-READ-singleton.fastq.gz</pre>
+</div>
+<div class="section" id="finding-a-reasonable-kmer-range">
+<h2>Finding a reasonable kmer range<a class="headerlink" href="#finding-a-reasonable-kmer-range" title="Permalink to this headline">¶</a></h2>
+<p>For the automated procedure, we need to have a reasonably good idea of the kmer
+range that we want to plug into the automated process. After several rounds of
+this process, you generally get a good idea of what works. However, I still
+empirically check this range against a couple of test assemblies before running
+many assemblies with the automation code.</p>
+<p>To determine this range, you want to assemble a test batch of reads using a
+range of kmer values. I usually do this for 4-5 taxa in the data set I just
+cleaned using kmer values in the range of 63-75. Depending on the so-called
+&#8220;optimal&#8221;, kmer value reported by VelvetOptimiser, I&#8217;ll adjust the upper and
+lower limits of this range, hopefully settling on a range of values that will
+work across the remaining batches of reads during the automated process.</p>
+<p>To assemble a test batch of reads, you want to run the following with
+VelvetOptimiser. The commands below assumes you have an 8-core computer (<cite>-t
+8</cite>) and a sizable amount of RAM (&gt;= 24 GB). If you have fewer cores or less RAM,
+you&#8217;ll need to adjust the <cite>-t</cite> parameter.  You probably want to initially try
+a range of kmer values between 63 and 75.</p>
+<p>So, pick a taxon to test with.  You probably want to start with something
+having roughly the mean number of reads across all taxa you included in a run.</p>
+<p>First, you want to enter a particular taxons <cite>uce-clean</cite> directory of reads and
+create an <cite>assembly</cite> directory to hold the assembly results:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nb">cd </span>uce-clean/genus_species1/
+mkdir assembly
+<span class="nb">cd </span>assembly
+</pre></div>
+</div>
+<p>Now that you&#8217;re in the directory, you want to run VelvetOptimiser against the
+interleaved read data that are one directory up:</p>
+<div class="highlight-bash"><div class="highlight"><pre>VelvetOptimiser -s 63 -e 75 -t 8 -a -c ncon <span class="se">\</span>
+-f <span class="s1">&#39;-fastq.gz \</span>
+<span class="s1">-shortPaired ../interleaved-adapter-quality-trimmed/genus_species-READ1and2-interleaved.fastq.gz \</span>
+<span class="s1">-short ../interleaved-adapter-quality-trimmed/genus_species-READ-singleton.fastq.gz&#39;</span>
+</pre></div>
+</div>
+<p>VelvetOptimiser will assemble the read data in the
+interleaved-adapter-quality-trimmed directory and when it is finished, will
+output the optimal kmer size for the assembly to stdout.  Write down and/or
+remember this number (probably best to write it down).</p>
+<p>You also want to ensure that the optimal kmer size is <strong>inside</strong> of the range
+that you passed to the program. If it is, conduct several additional assemblies
+with other data to ensure that this range works well across all of your samples.</p>
+<p>If the &#8220;optimal&#8221; kmer size is at the <strong>edge</strong> of the range you input, then you
+should adjust the range of kmer values to try, and re-assemble the data to see
+if the next &#8220;optimal&#8221; kmer value is within the range you input.</p>
+<p>Once you have a good idea of the range size for the data, you may wish to delete
+the test <cite>assembly</cite> directories.  You can also keep them, but you will need to
+manually symlink over the contigs folder (see below).</p>
+</div>
+<div class="section" id="running-assemblo-py">
+<h2>Running assemblo.py<a class="headerlink" href="#running-assemblo-py" title="Permalink to this headline">¶</a></h2>
+<p>Once you have a good idea of the range that will work for your data,
+you can run the automated script to assemble your data:</p>
+<div class="highlight-bash"><div class="highlight"><pre>python ~/git/phyluce/bin/assembly/assemblo.py uce-clean 63 75 7
+</pre></div>
+</div>
+<p>This will run VelvetOptimiser across your data in the <cite>uce-clean</cite> directory,
+using a range of kmer values from 63-75 and 7 compute cores. As before, you may
+need to adjust the number of compute cores for your system and/or amount of RAM.</p>
+<p><cite>assemblo.py</cite> will output the results of each assembly to <cite>stdout</cite>, giving the
+file name, optimal kmer size, resulting n50, and an indication of whether the
+optimal kmer size was reached during assembly.</p>
+<p>If the optimal kmer size is not reached during assembly, you may wish to
+re-assembly problematic contigs by hand with different parameters (a smaller or
+larger range).</p>
+<p>If you want to exclude certain directories nested within <cite>uce-clean</cite>, for
+instance, you can run:</p>
+<div class="highlight-bash"><div class="highlight"><pre>python ~/git/phyluce/bin/assembly/assemblo.py uce-clean 63 75 7 <span class="se">\</span>
+--exclude genus_species1 genus_species2
+</pre></div>
+</div>
+<p>Within the <cite>uce-clean</cite> directory, <cite>assemblo.py</cite> will create a directory named
+<cite>contigs</cite> that contain symlinks to the resulting assembly data for each taxon.</p>
+<p>If you assembled any data by hand that are in <cite>assembly</cite> directories, you will
+also want to symlink those results in the <cite>contigs</cite> directory.</p>
+</div>
+<div class="section" id="linking-contig-assemblies-into-the-contigs-directory">
+<h2>Linking contig assemblies into the <cite>contigs</cite> directory<a class="headerlink" href="#linking-contig-assemblies-into-the-contigs-directory" title="Permalink to this headline">¶</a></h2>
+<p><cite>assemblo.py</cite> will assemble your contigs, and symlink them into a <cite>contigs</cite>
+directory.  These symlinks allow you to reasonably keep track of which assembly
+is linked to a particular taxon, maintaining continuity in your data.</p>
+<p>If you have manually assembled any contigs outside of assembly, you will also
+need to manually link those into the contigs folder with something like:</p>
+<div class="highlight-bash"><div class="highlight"><pre>ln -s uce-clean/genus_species1/genus_species1/assembly/auto_data_75/contigs.fa <span class="se">\</span>
+contigs/genus_species1.contigs.fasta
+</pre></div>
+</div>
+<p>The other downside of symlinks is that they tend not to &#8220;travel&#8221; very well.
+Meaning, if you want to move the contigs folder somewhere else, this will often
+break the symlinks created by <cite>assemblo.py</cite>.  This is often painful to fix by hand,
+so there&#8217;s a bit of code in <cite>phyluce_</cite> to help you do that.  If you have reads in:</p>
+<div class="highlight-python"><pre>/path/to/my/uce-clean/contigs</pre>
+</div>
+<p>and you want to create a new <cite>contigs</cite> folder elsewhere, you want to replace the path
+in the original symlink with the path in the new symlink.  So, you can run:</p>
+<div class="highlight-python"><pre>python ~/Git/brant/phyluce/bin/share/replace_many_links.py \
+    /path/to/my/uce-clean/contigs \
+    /path/to/my/uce-clean/clean/ \
+    /new/path/to/my/uce-clean/location/
+    name-of-new-folder</pre>
+</div>
+</div>
+<div class="section" id="determining-success-or-failure-of-an-assembly-enrichment">
+<h2>Determining success or failure of an assembly/enrichment<a class="headerlink" href="#determining-success-or-failure-of-an-assembly-enrichment" title="Permalink to this headline">¶</a></h2>
+<p>This is a little bit tricky without having some previous experience. Generally
+speaking, if you cannot reasonably easily find an optimal kmer value for a
+given assembly (the &#8220;optimal&#8221; kmer is <strong>always</strong> at the top or bottom of the
+range), then the assembly (and data) are likely not as good as they should be.
+The causes of this are too many to describe here, but include low-coverage,
+poor enrichment, bad libraries, contamination, etc.</p>
+<p>You should generally see that the total number of contigs assembled is within
+1-3X the number of contigs that you targeted with your enrichment probe set.
+Ideally, you also want the assembled contigs to have an n50 &gt; 300-400 bp.  You
+typically <strong>do not</strong> want to see only very large (&gt;10 Kbp) contigs assembled or
+only very small (&lt; 300 bp) contigs assembled.</p>
+<p>Again, these results depend on a variety of factors including starting DNA
+quality, library size, the efficiency of the enrichment, the number of
+post-enrichment PCR cycles you used, the amount of sequence data collected for
+a given library, etc., etc., etc.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Read Assembly</a><ul>
+<li><a class="reference internal" href="#finding-a-reasonable-kmer-range">Finding a reasonable kmer range</a></li>
+<li><a class="reference internal" href="#running-assemblo-py">Running assemblo.py</a></li>
+<li><a class="reference internal" href="#linking-contig-assemblies-into-the-contigs-directory">Linking contig assemblies into the <cite>contigs</cite> directory</a></li>
+<li><a class="reference internal" href="#determining-success-or-failure-of-an-assembly-enrichment">Determining success or failure of an assembly/enrichment</a></li>
+</ul>
+</li>
+</ul>
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="pre-processing-qc.html" title="previous chapter">Data Pre-processing</a></li>
+      <li>Next: <a href="uce-processing.html" title="next chapter">UCE Processing for Phylogenomics</a></li>
+  </ul></li>
+</ul>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/pre-processing-assembly.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2012, Brant C. Faircloth.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+    </div>
+  </body>
+</html>

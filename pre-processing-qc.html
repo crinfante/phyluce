@@ -1,0 +1,296 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Data Pre-processing &mdash; phyluce v0.1.0 documentation</title>
+    <link rel="stylesheet" href="_static/flasky.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="top" title="phyluce v0.1.0 documentation" href="index.html" />
+    <link rel="next" title="Read Assembly" href="pre-processing-assembly.html" />
+    <link rel="prev" title="Study design" href="study-design.html" />
+   
+  
+  <link media="only screen and (max-device-width: 480px)" href="_static/small_flask.css" type= "text/css" rel="stylesheet" />
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="pre-processing-assembly.html" title="Read Assembly"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="study-design.html" title="Study design"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">phyluce v0.1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="data-pre-processing">
+<h1>Data Pre-processing<a class="headerlink" href="#data-pre-processing" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="demultiplexing">
+<h2>Demultiplexing<a class="headerlink" href="#demultiplexing" title="Permalink to this headline">¶</a></h2>
+<p>Because we are reducing genomes, and beceause we generally reduce genomes to a
+fraction of their original size, we can combine DNA libraries from many sources
+into a single lane of HiSeq (or even MiSeq) sequencing.  And, because we
+are multiplexing these libraries prior to sequencing, we need to &#8220;demultiplex&#8221;
+these libraries after they&#8217;re sequenced.</p>
+<p>Demultiplexing is a tricky process, made trickier by the platform with which you
+are working.  Thankfully, demultiplexing (or &#8220;demuxing&#8221;) Illumina reads is
+rather simple. There are several options:</p>
+<ul class="simple">
+<li><a class="reference external" href="http://support.illumina.com/sequencing/sequencing_software/casava.ilmn">Casava</a> (the Illumina pipeline)</li>
+<li><a class="reference external" href="http://hannonlab.cshl.edu/fastx_toolkit/">fastx-toolkit</a></li>
+<li><a class="reference external" href="http://www.phyloware.com/Phyloware/XSTK.html">bartab</a></li>
+</ul>
+<p>I have also written <a class="reference external" href="https://github.com/faircloth-lab/splitaake/">splitaake</a>, which is a program to help demultiplex
+Illumina reads.  <a class="reference external" href="https://github.com/faircloth-lab/splitaake/">splitaake</a> is particularly useful when you have very many
+sequence tags (aka &#8220;barcodes&#8221;) to demultiplex, when your sequence tags are
+long, or some combination of the two.</p>
+<p>To demultiplex your data with <a class="reference external" href="https://github.com/faircloth-lab/splitaake/">splitaake</a>, please see the website.</p>
+</div>
+<div class="section" id="read-counts">
+<h2>Read Counts<a class="headerlink" href="#read-counts" title="Permalink to this headline">¶</a></h2>
+<p>After demultiplexing, it&#8217;s always good to get an idea of the split of reads
+among your samples.  This does two things:</p>
+<ol class="arabic simple">
+<li>Allows you to determine how well you split the run among your tags</li>
+<li>Shows you which samples may be suboptimal (have very few reads)</li>
+</ol>
+<p>Really unequal read counts mean that you may want to switch up your library
+quantification process (or your pooling steps, prior to enrichment). Suboptimal
+read counts for particular libraries may or may not mean that the enrichments
+of those samples &#8220;failed&#8221;, but it&#8217;s generally a reasonable indication.</p>
+<p>Because we&#8217;re working with fastq files, it&#8217;s reasonably easy to get read counts
+across all of the libraries (with a little division).  Fastq files contains
+4 lines for each read, so we need to get the count of all lines in each file and
+divide those results by 4.</p>
+<p>Assuming that your reads are in a directory structure like:</p>
+<div class="highlight-python"><pre>some-directory-name/
+    bfidt-000_R1.fastq.gz
+    bfidt-000_R2.fastq.gz
+    bfidt-001_R1.fastq.gz
+    bfidt-001_R2.fastq.gz</pre>
+</div>
+<p>you can count lines across all files in all directories, with:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="k">for </span>i in some-directory-name/*_R1.fastq.gz; <span class="k">do </span><span class="nb">echo</span> <span class="nv">$i</span>; gunzip -c <span class="nv">$i</span> | wc -l; <span class="k">done</span>
+</pre></div>
+</div>
+<p>This will output a list of results like:</p>
+<div class="highlight-python"><pre>bfidt-000_R1.fastq.gz
+ 10000000
+bfidt-000_R2.fastq.gz
+ 16000000</pre>
+</div>
+<p>If you <strong>divide these numbers by 4</strong>, then that is the count of R1 reads (the count
+of R2 reads should be equal).</p>
+</div>
+<div class="section" id="adapter-and-quality-trimming">
+<h2>Adapter- and quality- trimming<a class="headerlink" href="#adapter-and-quality-trimming" title="Permalink to this headline">¶</a></h2>
+<p>After you demultiplex your data, you generally end up with a number of files in
+a directory that look like the following.  Specifically, if you used <a class="reference external" href="https://github.com/faircloth-lab/splitaake/">splitaake</a>:</p>
+<div class="highlight-python"><pre>some-directory-name/
+    bfidt-000_R1.fastq.gz
+    bfidt-000_R2.fastq.gz
+    bfidt-001_R1.fastq.gz
+    bfidt-001_R2.fastq.gz</pre>
+</div>
+<p>or, if you used <a class="reference external" href="http://support.illumina.com/sequencing/sequencing_software/casava.ilmn">Casava</a>:</p>
+<div class="highlight-python"><pre>Project_name/
+    Sample_BFIDT-000
+        BFIDT-000_AGTATAGCGC_L001_R1_001.fastq.gz
+        BFIDT-000_AGTATAGCGC_L001_R2_001.fastq.gz
+    Sample_BFIDT-001
+        BFIDT-001_TTGTTGGCGG_L001_R1_001.fastq.gz
+        BFIDT-001_TTGTTGGCGG_L001_R2_001.fastq.gz</pre>
+</div>
+<p>Now, what you want to do is to clean these reads of adapter contamination
+and trim low-quality bases from all reads (and probably also drop reads
+containing &#8220;N&#8221; (ambiguous) bases.  Then you want to interleave the resulting
+data, where read pairs are maintained, and also have an output file of singleton
+data, where read pairs are not.</p>
+<p>You can do this however you like. For the steps that follow, you want a
+resulting directory structure that looks like (replace genus_species with your
+taxon names):</p>
+<div class="highlight-python"><pre>genus_species1/
+    interleaved-adapter-quality-trimmed/
+        genus_species1-READ1and2-interleaved.fastq.gz
+        genus_species1-READ-singleton.fastq.gz
+genus_species2/
+    interleaved-adapter-quality-trimmed/
+        genus_species2-READ1and2-interleaved.fastq.gz
+        genus_species2-READ-singleton.fastq.gz</pre>
+</div>
+<p>The &#8220;READ1and2&#8221; file should be in interleaved file containig both reads kept,
+and the READ file should contain those data where one read of the pair are kept
+(AKA singleton reads).</p>
+<div class="section" id="read-qc-with-illumiprocessor">
+<h3>Read QC with illumiprocessor<a class="headerlink" href="#read-qc-with-illumiprocessor" title="Permalink to this headline">¶</a></h3>
+<p>I created a program that I use for adapter and quality trimming named
+<a class="reference external" href="https://github.com/faircloth-lab/illumiprocessor/">illumiprocessor</a>. It generally automates these processes and produces output
+if the format we want downstream.</p>
+<p>If you used Casava, it will be easiest to place all of the demuliplexed reads
+into a single directory.  If you used <a class="reference external" href="https://github.com/faircloth-lab/splitaake/">splitaake</a>, then things should be all
+set.</p>
+<p>You need to generate a configuration file <cite>your-illumiprocessor.conf</cite>, that
+gives details of your reads, how you want them processed, and what renaming
+options to use. This file is an extension of the INI file used for <a class="reference external" href="https://github.com/faircloth-lab/splitaake/">splitaake</a>
+and it looks like this:</p>
+<div class="highlight-python"><pre>[adapters]
+truseq1:AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT
+truseq2:CAAGCAGAAGACGGCATACGAGAT*GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT
+
+[indexes]
+bfidt-000:AACCGAGTTA
+bfidt-001:AATACTTCCG
+bfidt-002:AATTAAGGCC
+bfidt-003:AAGCTTATCC
+
+[params]
+separate reads:True
+read1:{name}_R1.fastq.gz
+read2:{name}_R2.fastq.gz
+
+[combos]
+genus_species1:bfidt-000
+genus_species2:bfidt-001
+genus_species3:bfidt-002
+genus_species4:bfidt-003
+
+[remap]
+bfidt-000:genus_species1
+bfidt-001:genus_species2
+bfidt-002:genus_species3
+bfidt-003:genus_species4</pre>
+</div>
+<p>This gives the adapter sequences to trim (with the index indicated by an
+asterisk) in <cite>[adapters]</cite>, the indexes we used <cite>[indexes]</cite>, whether reads are
+separate and a name-formatting convention <cite>[params]</cite>, a mapping of species
+names to index <cite>[combos]</cite>, and a mapping of index names to species <cite>[remap]</cite>.</p>
+<p>You can run illumiprocessor against your data (in <cite>demultiplexed</cite>) with the
+following.  If you do not have a multicore machine, you may with to run with
+<cite>&#8211;cores=1</cite>.  Additionally, multicore operations require a fair amount of RAM,
+so if you&#8217;re low on RAM, run with fewer cores:</p>
+<div class="highlight-bash"><div class="highlight"><pre>mkdir uce-clean
+python ~/git/illumiprocessor/illumiprocessor.py <span class="se">\</span>
+    demultiplexed <span class="se">\</span>
+    uce-clean <span class="se">\</span>
+    your-illumiprocesser.conf <span class="se">\</span>
+    --remap <span class="se">\</span>
+    --clean <span class="se">\</span>
+    --cores 12 <span class="se">\</span>
+    --complex
+</pre></div>
+</div>
+<p>The clean data will appear in <cite>uce-clean</cite> with the following structure:</p>
+<div class="highlight-python"><pre>uce-clean/
+    genus_species1/
+        interleaved-adapter-quality-trimmed/
+            genus_species-READ1and2-interleaved.fastq.gz
+            genus_species-READ-singleton.fastq.gz
+        stats/
+            genus_species-READ1.fastq.gz-adapter-contam.txt
+            genus_species--READ2.fastq.gz-adapter-contam.txt
+            sickle-trim.txt
+        untrimmed/
+            genus_species-READ1.fastq.gz (symlink)
+            genus_species-READ1.fastq.gz (symlink)
+    genus_species2/
+        interleaved-adapter-quality-trimmed/
+            genus_species-READ1and2-interleaved.fastq.gz
+            genus_species-READ-singleton.fastq.gz
+        stats/
+            genus_species-READ1.fastq.gz-adapter-contam.txt
+            genus_species--READ2.fastq.gz-adapter-contam.txt
+            sickle-trim.txt
+        untrimmed/
+            genus_species-READ1.fastq.gz (symlink)
+            genus_species-READ1.fastq.gz (symlink)</pre>
+</div>
+<p><cite>interleaved-adapter-quality-trimmed</cite> contains the cleaned read data in
+interleaved format, with one file containing &#8220;READ1and2&#8221; (both reads kept) and
+another file containing &#8220;READ&#8221; data, where singleton reads are kept (singletons
+sometimes result from the QC routines).</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Data Pre-processing</a><ul>
+<li><a class="reference internal" href="#demultiplexing">Demultiplexing</a></li>
+<li><a class="reference internal" href="#read-counts">Read Counts</a></li>
+<li><a class="reference internal" href="#adapter-and-quality-trimming">Adapter- and quality- trimming</a><ul>
+<li><a class="reference internal" href="#read-qc-with-illumiprocessor">Read QC with illumiprocessor</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="study-design.html" title="previous chapter">Study design</a></li>
+      <li>Next: <a href="pre-processing-assembly.html" title="next chapter">Read Assembly</a></li>
+  </ul></li>
+</ul>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/pre-processing-qc.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2012, Brant C. Faircloth.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+    </div>
+  </body>
+</html>

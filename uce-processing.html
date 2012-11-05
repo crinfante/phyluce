@@ -1,0 +1,912 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>UCE Processing for Phylogenomics &mdash; phyluce v0.1.0 documentation</title>
+    <link rel="stylesheet" href="_static/flasky.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="top" title="phyluce v0.1.0 documentation" href="index.html" />
+    <link rel="next" title="License" href="license.html" />
+    <link rel="prev" title="Read Assembly" href="pre-processing-assembly.html" />
+   
+  
+  <link media="only screen and (max-device-width: 480px)" href="_static/small_flask.css" type= "text/css" rel="stylesheet" />
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="pre-processing-assembly.html" title="Read Assembly"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">phyluce v0.1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="uce-processing-for-phylogenomics">
+<h1>UCE Processing for Phylogenomics<a class="headerlink" href="#uce-processing-for-phylogenomics" title="Permalink to this headline">¶</a></h1>
+<p>The workflow described below is meant to outline the process needed for
+analyzing UCE in phylogenetic contexts - meaning that you are interested in
+addressing questions at the species level or deeper.</p>
+<div class="section" id="probe-sets">
+<h2>Probe sets<a class="headerlink" href="#probe-sets" title="Permalink to this headline">¶</a></h2>
+<p>Depending on the taxa you are targeting and the probe set that you are using,
+you will need to adjust the probe set name to reference the fasta file of those
+probes you used. Below, I have used the <cite>uce-5k-probes.fasta</cite> probe set.
+However, the probe set that use could be one of:</p>
+<ol class="arabic simple">
+<li>uce-2k-probes.fasta (tetrapods/birds/mammals)</li>
+<li>uce-5k-probes.fasta (tetrapods/birds/mammals)</li>
+</ol>
+</div>
+<div class="section" id="outgroup-data-and-probe-set-downloads">
+<span id="outgroup-data"></span><h2>Outgroup data and probe set downloads<a class="headerlink" href="#outgroup-data-and-probe-set-downloads" title="Permalink to this headline">¶</a></h2>
+<p>We have started to standardize and provide prepared sets of UCE probes and
+outgroup data. The outgroup data are sliced from available genome sequences,
+and the probe sets and outgroup data are version controlled for a particular
+set of taxa (e.g., tetrapods, fish). If you would like to use these in your own
+analyses, to extend your current data set or to provide an outgroup, you can
+download them from <a class="reference external" href="https://github.com/faircloth-lab/uce-probe-sets">uce-probe-sets</a></p>
+</div>
+<div class="section" id="indentifying-contigs-matching-uce-loci">
+<span id="contigs-matching"></span><h2>Indentifying contigs matching UCE loci<a class="headerlink" href="#indentifying-contigs-matching-uce-loci" title="Permalink to this headline">¶</a></h2>
+<p>After assembly, we have generated contigs from raw reads.  These contigs reside
+in the <cite>contigs</cite> resulting from assembly.  During the next part of the process,
+we need to determine which of the assembled contigs match UCE loci and which do
+not.  We also need to remove any contigs that appear to be duplicates as a
+result of assembly/other problems <strong>or</strong> a duplication event(s).</p>
+<p>The first thing to do is to make sure that our probe set does not contain any
+duplicates.  So, you probably want to align the file of probe sequences to
+itself (if you&#8217;re using a probe-set from github, the this file should be
+included):</p>
+<div class="highlight-bash"><div class="highlight"><pre>python phyluce/bin/share/easy_lastz.py <span class="se">\</span>
+    --target uce-5k-probes.fasta <span class="se">\</span>
+    --query uce-5k-probes.fasta <span class="se">\</span>
+    --identity 85 <span class="se">\</span>
+    --output uce-5k-probes.fasta.toself.lastz
+</pre></div>
+</div>
+<p>Now, what we need to do is to align our probes to our contigs.  First, you want
+to make a directory to hold our output:</p>
+<div class="highlight-bash"><div class="highlight"><pre>mkdir /path/to/output/lastz
+</pre></div>
+</div>
+<p>Then, we want to align the contigs we assembled to the UCE loci represented
+in the uce-5k-probes.fasta file.  Since we&#8217;re using &#8220;new-style&#8221; (standardized)
+probe names, we want to include the flags:</p>
+<div class="highlight-python"><pre>--regex "_p[1-9]+$" --repl ""</pre>
+</div>
+<p>Which we use to strip the probe numbers off of particular loci in the
+<cite>uce-5k-probes.fasta</cite> file (stripping off the probe numbers allows us to
+merge all probes down to a single locus).  Note, too, that we&#8217;re passing the
+<cite>uce-5k-probes.fasta.toself.lastz</cite> to the code so that we can also exclude
+any UCE loci whose probes happen to overlap themselves:</p>
+<div class="highlight-bash"><div class="highlight"><pre>python phyluce/bin/assembly/match_contigs_to_probes.py <span class="se">\</span>
+    /path/to/velvet/assembly/contigs/ <span class="se">\</span>
+    /path/to/uce-5k-probes.fasta <span class="se">\</span>
+    /path/to/output/lastz <span class="se">\</span>
+    --regex <span class="s2">&quot;_p[1-9]+$&quot;</span> --repl <span class="s2">&quot;&quot;</span> <span class="se">\</span>
+    --dupefile uce-5k-probes.fasta.toself.lastz
+</pre></div>
+</div>
+<p>When you run this code, you will see output similar to:</p>
+<div class="highlight-python"><pre>genus_species1: 1031 (70.14%) uniques of 1470 contigs, 0 dupe probe matches, 48 UCE probes matching multiple contigs, 117 contigs matching multiple UCE probes
+genus_species2: 420 (68.52%) uniques of 613 contigs, 0 dupe probe matches, 30 UCE probes matching multiple contigs, 19 contigs matching multiple UCE probes
+genus_species3: 1071 (63.15%) uniques of 1696 contigs, 0 dupe probe matches, 69 UCE probes matching multiple contigs, 101 contigs matching multiple UCE probes</pre>
+</div>
+<p>Now, what this program does is to use <cite>lastz_</cite> to align all probes to the
+contigs. It basically ignores those contigs that don&#8217;t match probes (no
+matches) and screens the results to ensure that, of the matches, only one
+contig matches probes from one UCE locus and that only probes from one UCE
+locus match one contig. <strong>Everything outside of these parameters is dropped</strong>.</p>
+<p>The resulting files will be in the:</p>
+<div class="highlight-python"><pre>/path/to/output/lastz</pre>
+</div>
+<p>directory. You&#8217;ll see that this directory contains species-specific <cite>lastz_</cite>
+files as well as an sqlite database:</p>
+<div class="highlight-python"><pre>/path/to/output/lastz
+    genus_species1.contigs.lastz
+    genus_species2.contigs.lastz
+    genus_species3.contigs.lastz
+    probe.matches.sqlite</pre>
+</div>
+<p>The <cite>*.lastz</cite> files are basically for reference and individual review.  The
+really important data are actually summarized in the:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">probe</span><span class="o">.</span><span class="n">matches</span><span class="o">.</span><span class="n">sqlite</span>
+</pre></div>
+</div>
+<p>database.  It&#8217;s probably a good idea to have some knowledge of how this database
+is structured, since it&#8217;s basically what makes the next few steps work.  So, I&#8217;ll
+spend some time describing the structure and contents.</p>
+</div>
+<div class="section" id="the-probe-matches-sqlite-database">
+<h2>The probe.matches.sqlite database<a class="headerlink" href="#the-probe-matches-sqlite-database" title="Permalink to this headline">¶</a></h2>
+<p><cite>probe.matches.sqlite</cite> is a relational database that summarizes all <strong>valid</strong>
+matches of contigs to UCE loci across the set of taxa that you fed it. The
+database is created by and for <cite>sqlite_</cite>, which is a very handy, portable SQL
+database. For more info on SQL and SQLITE, see <cite>here_</cite>. I&#8217;ll briefly cover the
+database contents and use below.</p>
+<p>First, to take a look at the contents of the database run:</p>
+<div class="highlight-bash"><div class="highlight"><pre>sqlite3 probe.matches.sqlite
+</pre></div>
+</div>
+<p>You&#8217;ll now see something like:</p>
+<div class="highlight-python"><pre>SQLite version 3.7.3
+Enter ".help" for instructions
+Enter SQL statements terminated with a ";"
+sqlite&gt;</pre>
+</div>
+<p>It&#8217;s often easier to change some defaults for better viewing, so at the prompt,
+past in the following (for more info on <cite>sqlite_</cite> &#8220;dot&#8221; commands, you can type
+<cite>.help</cite>):</p>
+<div class="highlight-python"><pre>sqlite&gt; .mode columns
+sqlite&gt; .headers on
+sqlite&gt; .nullvalue .</pre>
+</div>
+<p>Now that that&#8217;s done, let&#8217;s see what tables the database contains:</p>
+<div class="highlight-python"><pre>sqlite&gt; .tables
+match_map  matches</pre>
+</div>
+<p>This tells us there&#8217;s two tables in the database, named <cite>match_map</cite> and
+<cite>matches</cite>.  We&#8217;ll look at <cite>matches</cite>, first.  To get some data out of <cite>matches</cite>,
+run (the use of uppercase is convention for SQL, but not required):</p>
+<div class="section" id="the-matches-table">
+<h3>The <cite>matches</cite> table<a class="headerlink" href="#the-matches-table" title="Permalink to this headline">¶</a></h3>
+<p>Let&#8217;s take a look at the contents of the <cite>matches</cite> table.  Once you&#8217;ve started
+the sqlite interface, run:</p>
+<div class="highlight-sql"><div class="highlight"><pre><span class="n">sqlite</span><span class="o">&gt;</span> <span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">matches</span> <span class="k">LIMIT</span> <span class="mi">10</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>This query select all rows (<cite>SELECT *</cite>) from the <cite>matches</cite> table (<cite>FROM
+matches</cite>) and limits the number of returned rows to 10 (<cite>LIMIT 10</cite>). This will
+output data that look something like:</p>
+<div class="highlight-python"><pre>uce         genus_species1  genus_species2  genus_species3
+----------  --------------  --------------  --------------
+uce-500     1               .               .
+uce-501     1               .               .
+uce-502     1               .               .
+uce-503     1               1               1
+uce-504     1               .               .
+uce-505     1               .               .
+uce-506     .               .               .
+uce-507     1               .               .
+uce-508     1               1               .
+uce-509     1               1               1</pre>
+</div>
+<p>Basically, what this indicates is that you enriched 9 of 10 targeted UCE loci
+from <cite>genus_species1</cite>, 3 of 10 UCE loci in the list from <cite>genus_species2</cite>, and
+2 of 10 UCE loci from <cite>genus_species3</cite>. The locus name is given in the <cite>uce
+column</cite>.  Remember that we&#8217;ve limited the results to 10 rows for the sake of
+making the results easy to view.</p>
+<p>If we wanted to see only those loci that enriched in all species, we could run:</p>
+<div class="highlight-sql"><div class="highlight"><pre><span class="n">sqlite</span><span class="o">&gt;</span> <span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">matches</span> <span class="k">WHERE</span> <span class="n">genus_species1</span> <span class="o">=</span> <span class="mi">1</span>
+   <span class="p">...</span><span class="o">&gt;</span> <span class="k">AND</span> <span class="n">genus_species2</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">AND</span> <span class="n">genus_species3</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Assuming we only had those 10 UCE loci listed above in the database, if we ran
+this query, we would see something like:</p>
+<div class="highlight-python"><pre>uce         genus_species1  genus_species2  genus_species3
+----------  --------------  --------------  --------------
+uce-503     1               1               1
+uce-509     1               1               1</pre>
+</div>
+<p>Basically, the <cite>matches</cite> table and this query are what we run to generate
+<strong>complete</strong> (only loci enriched in all taxa) and <strong>incomplete</strong> (all loci
+enriched from all taxa) datasets (see <a class="reference internal" href="#locus-counts"><em>Determining locus counts and generating a taxon-set</em></a>).</p>
+</div>
+<div class="section" id="the-match-map-table">
+<h3>The <cite>match_map</cite> table<a class="headerlink" href="#the-match-map-table" title="Permalink to this headline">¶</a></h3>
+<p>The <cite>match_map</cite> table shows us which species-specific, velvet-assembled contigs
+match which UCE loci. Because velvet assigns an arbitrary designator to each
+assembled contig, we need to map these arbitrary designators (which differ for
+each taxon) to the UCE locus to which it corresponds. Because velvet contigs
+are not in any particular orientation (i.e., they may be 5&#8217; - 3&#8217; or 3&#8217; - 5&#8217;),
+we also need to determine the orientation of all contigs relative to the source
+probe file.</p>
+<p>Let&#8217;s take a quick look:</p>
+<div class="highlight-sql"><div class="highlight"><pre><span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">match_map</span> <span class="k">LIMIT</span> <span class="mi">10</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>This query is similar to the one that we ran against <cite>matches</cite> and returns the
+first 10 rows of the <cite>match_map</cite> table:</p>
+<div class="highlight-python"><pre>uce         genus_species1  genus_species2  genus_species3
+----------  --------------  --------------  --------------
+uce-500     node_233(+)     .               .
+uce-501     node_830(+)     .               .
+uce-502     node_144(-)     .               .
+uce-503     node_1676(+)    node_243(+)     node_322(+)
+uce-504     node_83(+)      .               .
+uce-505     node_1165(-)    .               .
+uce-506     .               .               .
+uce-507     node_967(+)     .               .
+uce-508     node_671(+)     node_211(-)     .
+uce-509     node_544(-)     node_297(+)     node_37(+)</pre>
+</div>
+<p>As stated above, these results show the &#8220;hits&#8221; of velvet-assembled contigs to
+particular UCE loci. So, if we were to open the <cite>genus_species1.contigs.fasta</cite>
+symlink (which connects to the assembly) in the <cite>contigs</cite> folder, the contig
+named <cite>node_233</cite> corresponds to UCE locus <cite>uce-500</cite>.</p>
+<p>Additionally, each entry in the rows also provides the orientation for
+particular contigs <cite>(-)</cite> or <cite>(+)</cite>. This orientation is relative to the
+orientation of the UCE probes/locus in the source genome (e.g., chicken for
+tetrapod probes).</p>
+<p>We use this table to generate a FASTA file of UCE loci for alignment (see
+<a class="reference internal" href="#locus-counts"><em>Determining locus counts and generating a taxon-set</em></a>), after we&#8217;ve identified the loci we want in a particular
+data set. The code for this step also uses the associated orientation data to
+ensure that all the sequence data have the same orientation prior to alignment
+(some aligners will force alignment of all reads using the given orientation
+rather than also trying the reverse complement and picking the better alignment
+of the two).</p>
+</div>
+</div>
+<div class="section" id="determining-locus-counts-and-generating-a-taxon-set">
+<span id="locus-counts"></span><h2>Determining locus counts and generating a taxon-set<a class="headerlink" href="#determining-locus-counts-and-generating-a-taxon-set" title="Permalink to this headline">¶</a></h2>
+<p>Now that we know the taxa for which we&#8217;ve enriched UCE loci and which
+contigs we&#8217;ve assembled match which UCE loci, we&#8217;re ready to generate some data
+sets.  The data set generation process is pretty flexible - you can select which
+taxa you would like to group together for an analysis, you can generate complete
+and incomplete data matrices, and you can also include additional data from the
+provided outgroup files and data (see <a class="reference internal" href="#outgroup-data"><em>Outgroup data and probe set downloads</em></a>) or previous runs.
+We&#8217;ll start simple.</p>
+<div class="section" id="complete-matrix-data-set">
+<h3>Complete matrix data set<a class="headerlink" href="#complete-matrix-data-set" title="Permalink to this headline">¶</a></h3>
+<p>First, we&#8217;ll generate a data set from only the current UCE enrichments,
+and it will be complete - meaning that we will not include loci where certain
+taxa have no data (either the locus was not enriched for that taxon or removed
+during the filtering process for duplicate loci).</p>
+<p>The first step of generating a data set is to identify those loci present in the
+taxa with which we&#8217;re working.  First, you need to create a configuration (text)
+file denoting the taxa we want in the data set.  It should look like this:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">[</span><span class="n">dataset1</span><span class="p">]</span>
+<span class="n">genus_species1</span>
+<span class="n">genus_species2</span>
+<span class="n">genus_species3</span>
+</pre></div>
+</div>
+<p>Let&#8217;s assume you name this file <cite>datasets.conf</cite>.  Now, you want to run the
+following against this file, along with several other files we&#8217;ve created
+previously:</p>
+<div class="highlight-python"><pre>.. code-block:: bash</pre>
+</div>
+<blockquote>
+<div><dl class="docutils">
+<dt>python phyluce/bin/assembly/get_match_counts.py </dt>
+<dd>/path/to/output/lastz/probe.matches.sqlite /path/to/your/datasets.conf &#8216;dataset1&#8217; &#8211;output /path/to/some/output-file/dataset1.conf</dd>
+</dl>
+</div></blockquote>
+<p>This will basically run a query against the database, and pull out those loci
+for those taxa in the <cite>datasets.conf</cite> file having UCE contigs.  The output will
+look something like:</p>
+<div class="highlight-python"><pre>Shared UCEs: 500
+
+genus_species1:108
+genus_species2:93
+genus_species3:71</pre>
+</div>
+<p>This means that 500 loci are shared amongst the 3 taxa in <cite>datasets.conf</cite>.  We
+might have had more, but <cite>genus_species1</cite> caused us to drop 108 loci,
+<cite>genus_species2</cite> caused us to drop 93 loci, and <cite>genus_species3</cite> caused us to
+drop 71 loci.</p>
+<p>Now, you might think that increasing the locus count is simply a matter of
+removing <cite>genus_species1</cite> from the list of taxa.  This is not strictly true,
+however, given the vagaries of hits and misses among taxa. <cite>get_match_counts.py</cite>
+has several other options to help you determine which taxa may be causing
+problems, but picking the best combination of taxa to give you the highest
+number of loci is a somewhat hard optimization problem.</p>
+<p>If you want to generate/evalaute additional data sets with different taxa, you
+can simply append that list to the <cite>datasets.conf</cite> file like so:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">[</span><span class="n">dataset1</span><span class="p">]</span>
+<span class="n">genus_species1</span>
+<span class="n">genus_species2</span>
+<span class="n">genus_species3</span>
+
+<span class="p">[</span><span class="n">dataset2</span><span class="p">]</span>
+<span class="n">genus_species2</span>
+<span class="n">genus_species3</span>
+<span class="n">genus_species4</span>
+<span class="n">genus_species5</span>
+<span class="n">genus_species6</span>
+</pre></div>
+</div>
+<p>and then run <cite>get_match_counts.py</cite> against this new section:</p>
+<div class="highlight-python"><pre>python phyluce/bin/assembly/get_match_counts.py \
+    /path/to/output/lastz/probe.matches.sqlite \
+    /path/to/your/datasets.conf \
+    'dataset2' \
+    --output /path/to/some/output-file/dataset2.conf</pre>
+</div>
+</div>
+<div class="section" id="incomplete-data-matrix">
+<h3>Incomplete data matrix<a class="headerlink" href="#incomplete-data-matrix" title="Permalink to this headline">¶</a></h3>
+<p>You may not always want a complete data matrix or generating a complete matrix
+drops too many loci for your tastes.  That&#8217;s cool.  You can generate an
+incomplete dataset like so:</p>
+<div class="highlight-bash"><div class="highlight"><pre>python phyluce/bin/assembly/get_match_counts.py <span class="se">\</span>
+    /path/to/output/lastz/probe.matches.sqlite <span class="se">\</span>
+    /path/to/your/datasets.conf <span class="se">\</span>
+    <span class="s1">&#39;dataset1&#39;</span> <span class="se">\</span>
+    --output /path/to/some/output-file/dataset1-incomplete.conf
+    --incomplete-matrix
+</pre></div>
+</div>
+<p>This will generate a dataset that includes any loci enriched across the taxa
+in the <cite>datasets.conf</cite> file.  This will also include a file named
+<cite>dataset1-incomplete.notstrict</cite> that contains those loci enriched for
+each taxon.  We&#8217;ll need that in a minute (see <a class="reference internal" href="#extracting-fasta"><em>Extracting relevant FASTA data</em></a>)</p>
+</div>
+<div class="section" id="incorporating-outgroup-other-data">
+<h3>Incorporating outgroup/other data<a class="headerlink" href="#incorporating-outgroup-other-data" title="Permalink to this headline">¶</a></h3>
+<p>You may want to include outgroup data from another source into your datasets.
+This can be from the pre-processed outgroup data files (see
+<a class="reference internal" href="#outgroup-data"><em>Outgroup data and probe set downloads</em></a>), but it doesn&#8217;t need to be these outgroup data. These
+additional data can also be contigs previously assembled from a different set
+of taxa.</p>
+<p>The first step of this process is to setup your <cite>datasets.conf</cite> slightly
+differently - by indicating these external data with asterisks:</p>
+<div class="highlight-python"><pre>[dataset3]
+genus_species1
+genus_species2
+genus_species3
+genus_species4*
+genus_species5*</pre>
+</div>
+<p>Then, you need to pass <cite>get_match_counts.py</cite> the location of the
+<cite>probe.matches.sqlite</cite> database previously generated as described in
+<a class="reference internal" href="#contigs-matching"><em>Indentifying contigs matching UCE loci</em></a> or downloaded as part of <a class="reference internal" href="#outgroup-data"><em>Outgroup data and probe set downloads</em></a></p>
+<blockquote>
+<div><dl class="docutils">
+<dt>python phyluce/bin/assembly/get_match_counts.py </dt>
+<dd>/path/to/output/lastz/probe.matches.sqlite /path/to/your/datasets.conf &#8216;dataset3&#8217; &#8211;extend /path/to/some/other/probe.matches.sqlite &#8211;output /path/to/some/output-file/dataset3-with-external.conf</dd>
+</dl>
+</div></blockquote>
+<p>To keep all this extension from getting too terribly crazy, I&#8217;ve limited the
+ability to include external data to essentially a single set.  If you have lots
+of data from many different enrichments, you&#8217;ll need to generate a <cite>contigs</cite>
+folder containing all these various assemblies (or symlinks to them), then
+align the probes to these data (see <a class="reference internal" href="#contigs-matching"><em>Indentifying contigs matching UCE loci</em></a>).  Once you do that,
+you can extend your current data set with all of these other data.</p>
+</div>
+</div>
+<div class="section" id="extracting-relevant-fasta-data">
+<span id="extracting-fasta"></span><h2>Extracting relevant FASTA data<a class="headerlink" href="#extracting-relevant-fasta-data" title="Permalink to this headline">¶</a></h2>
+<p>After selecting the set of loci in which you&#8217;re interested, you need to
+generate a FASTA file containing the reads from each species-specific contig
+that corresponds to a locus in the set.  This is reasonable easy.</p>
+<div class="section" id="complete-data-matrix">
+<h3>Complete data matrix<a class="headerlink" href="#complete-data-matrix" title="Permalink to this headline">¶</a></h3>
+<p>To generate a FASTA file, we&#8217;re passing several previously used paths and
+the name of the output file from <cite>get_match_counts.py</cite> on the third line below
+(<cite>/path/to/some/output-file/dataset1.conf</cite>):</p>
+<div class="highlight-python"><pre>python phyluce/bin/assembly/get_fastas_from_match_counts.py \
+    /path/to/velvet/assembly/contigs/ \
+    /path/to/output/lastz/probe.matches.sqlite \
+    /path/to/some/output-file/dataset1.conf \
+    --output /path/to/some/output.fasta</pre>
+</div>
+</div>
+<div class="section" id="id1">
+<h3>Incomplete data matrix<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>To generate a FASTA file, we&#8217;re passing several previously used paths plus the
+name of the output file from <cite>get_match_counts.py</cite> on the fourth line <strong>AND</strong>
+the name of the <cite>*.notstrict</cite> file on the fifth line:</p>
+<div class="highlight-python"><pre>python phyluce/bin/assembly/get_fastas_from_match_counts.py \
+    /path/to/velvet/assembly/contigs/ \
+    /path/to/output/lastz/probe.matches.sqlite \
+    /path/to/some/output-file/dataset1-incomplete.conf \
+    --incomplete-matrix /path/to/some/output-file/dataset1-incomplete.notstrict
+    --output /path/to/some/output.fasta</pre>
+</div>
+</div>
+<div class="section" id="id2">
+<h3>Incorporating outgroup/other data<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>Because we&#8217;re incorporating external data, we need to pass the name of the
+external database, as before, as well as the name of the external <cite>contigs</cite>
+directory:</p>
+<div class="highlight-python"><pre>python phyluce/bin/assembly/get_fastas_from_match_counts.py \
+    /path/to/velvet/assembly/contigs/ \
+    /path/to/output/lastz/probe.matches.sqlite \
+    /path/to/some/output-file/dataset3-with-external.conf \
+    --extend-db /path/to/some/other/probe.matches.sqlite \
+    --extend-dir /path/to/some/other/contigs/ \
+    --output /path/to/some/output.fasta</pre>
+</div>
+</div>
+</div>
+<div class="section" id="aligning-and-trimming-fasta-data">
+<h2>Aligning and trimming FASTA data<a class="headerlink" href="#aligning-and-trimming-fasta-data" title="Permalink to this headline">¶</a></h2>
+<p>With all of that out of the way, things get much easier to deal with.  We
+basically need to align our data across loci, and we&#8217;re largely ready to go.
+The remaining operations we can run on the data are format-conversions, QC steps
+or any number of other fun things.</p>
+<p>Aligning this much data is reasonably computationally intensive - so this
+alignment step goes fastest if you have a multicore machine.  You also have
+several alignment options available, although I would suggest sticking with
+MAFFT.</p>
+<p>First, make a folder for the alignment output:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">mkdir</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">alignment</span><span class="o">/</span><span class="n">output</span>
+</pre></div>
+</div>
+<div class="section" id="id3">
+<h3>Complete data matrix<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<p>The second line is the fasta created above (see <a class="reference internal" href="#extracting-fasta"><em>Extracting relevant FASTA data</em></a>), the
+second line is the path to the output, the third line gives the number of taxa
+in the alignment, <cite>&#8211;aligner mafft</cite> determines the alignment program, and
+<cite>&#8211;cores 8</cite> denoted the number of cores to use for this step:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/seqcap_align_2.py \
+    /path/to/some/output.fasta \
+    /path/to/alignment/output \
+    3 \
+    --aligner mafft \
+    --cores 8</pre>
+</div>
+</div>
+<div class="section" id="id4">
+<h3>Incomplete data matrix<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<p>The only difference for an alignment of incomplete data is that we also pass
+the <cite>&#8211;notstrict</cite> flag, which tells the code to expect that some loci will not
+have data for all taxa:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/seqcap_align_2.py \
+    /path/to/some/output.fasta \
+    /path/to/alignment/output \
+    3 \
+    --aligner mafft \
+    --incomplete-matrix \
+    --cores 8</pre>
+</div>
+<p>After checking the resulting alignment QC (see <a class="reference internal" href="#alignment-qc"><em>Alignment quality control</em></a>), you will
+generally need to add in missing data designators for taxa missing from the
+alignment of a given locus. This will basically allow you to generate
+concatenated data sets and it may reduce error messages from other programs
+about files having unequal numbers of taxa. To do this, you need to run:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/add_missing_data_designators.py \
+    /path/to/alignment/output  \
+    /path/to/alignment/output-with-missing-data/ \
+    /path/to/some/output-file/dataset3-with-external.conf \
+    /path/to/some/output-file/dataset3-with-external.notstrict</pre>
+</div>
+</div>
+<div class="section" id="alignment-trimming">
+<h3>Alignment trimming<a class="headerlink" href="#alignment-trimming" title="Permalink to this headline">¶</a></h3>
+<p>The alignment code &#8220;trims&#8221; alignments by default.  Basically, this means that
+it removes ragged 5&#8217; and 3&#8217; edges from a given alignment.  However, you may not
+want to run the trimming and just deal with the raw alignments output by
+mafft/muscle/dialign. No problem, you run <cite>seqcap_align_2.py</cite> just as above, but
+you add the <cite>&#8211;notrim</cite> option:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/seqcap_align_2.py \
+    /path/to/some/output.fasta \
+    /path/to/alignment/output \
+    3 \
+    --aligner mafft \
+    --cores 8 \
+    --notrim</pre>
+</div>
+</div>
+<div class="section" id="sate-alignment">
+<h3>Saté alignment<a class="headerlink" href="#sate-alignment" title="Permalink to this headline">¶</a></h3>
+<p>There is also an option to run Saté alignments instead of the default code.  For
+the moment, this code lives in <cite>mpi_sate.py</cite> and you can run it locally with
+something like:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/mpi_sate.py \
+    /path/to/some/output.fasta \
+    /path/to/alignment/output \
+    3 \
+    /path/to/sate \
+    /path/to/sate.cfg \
+    --parallelism multiprocessing \
+    --cores 8</pre>
+</div>
+<p>This code will also run on MPI enabled machines, but that is generally
+beyond the scope of this HOWTO.</p>
+</div>
+<div class="section" id="alignment-trimming-only">
+<h3>Alignment trimming only<a class="headerlink" href="#alignment-trimming-only" title="Permalink to this headline">¶</a></h3>
+<p>If you have untrimmed (ragged) alignments that you would like to trim with the
+<a class="reference external" href="https://github.com/faircloth-lab/phyluce">phyluce</a> trimming procedures, you can also run that:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/get_trimmed_alignments_from_untrimmed.py \
+    /path/to/alignment/input \
+    /path/to/output/for/trimmed/data/ \
+    --input-format nexus
+    --output-format nexus \
+    --multiprocessing</pre>
+</div>
+</div>
+</div>
+<div class="section" id="alignment-quality-control">
+<span id="alignment-qc"></span><h2>Alignment quality control<a class="headerlink" href="#alignment-quality-control" title="Permalink to this headline">¶</a></h2>
+<p>There are many ways to QC alignments.  The best way is to do it visually, but
+that gets somewhat hard when you have thousands of loci.  There are several
+programs in the <a class="reference external" href="https://github.com/faircloth-lab/phyluce">phyluce</a> package that help you QC alignments.  You probably
+always want to run:</p>
+<div class="highlight-python"><pre>python ~/git/phyluce/bin/align/get_align_summary_data.py \
+    /path/to/alignment/output-renamed \
+    --input-format nexus</pre>
+</div>
+<p>This will output a number of stats that look somewhat like (these examle data
+are from an incomplete matrix):</p>
+<div class="highlight-python"><pre>uce-1071.nex is &lt; 100 bp long
+uce-720.nex is &lt; 100 bp long
+
+Lengths
+-----
+Total length(aln)        256066
+Average length(aln)      318.490049751
+95 CI length(aln)        10.6004273805
+Minimum length(aln)      64
+Maximum length(aln)      933
+
+Taxa
+-----
+Average(taxa)            11.526119403
+95 CI(taxa)              0.37345195065
+min(taxa)                3
+max(taxa)                21
+Count(taxa:# alns)       {3: 77, 4: 44, 5: 38, 6: 35, 7: 36, 8: 33, 9: 47, 10: 35, 11: 31, 12: 34, 13: 50, 14: 62, 15: 54, 16: 58, 17: 38, 18: 45, 19: 41, 20: 35, 21: 11}
+
+Base composition
+-----
+Bases                    {'A': 657715, 'C': 533302, '-': 380870, 'T': 667908, 'G': 523342}
+Sum(all)                 2763137
+Sum(nucleotide only)     2382267
+Missing data from trim (%)5.41</pre>
+</div>
+<p>Sometimes, loci will contain bases that are not in the standard set of IUPAC
+base code (e.g. &#8220;X&#8221; or &#8220;N&#8221;).  To identify these loci, you can run:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/screen_alignments_for_problems.py \
+    /path/to/alignment/output-renamed \
+    --input-format nexus</pre>
+</div>
+</div>
+<div class="section" id="alignment-name-cleaning">
+<h2>Alignment name cleaning<a class="headerlink" href="#alignment-name-cleaning" title="Permalink to this headline">¶</a></h2>
+<p>So that you can visually check the resulting alignments to make sure the correct
+reads for each taxon are included in a given alignment, the <cite>seqcap_align_2.py</cite>
+program writes output files that contain the locus name as part of the taxon
+name in the output nexus files.</p>
+<p>This is likely to change in the near future.  However, in the meantime, you
+probably want to remove this designation from the resulting alignment files.
+You can easily do this with:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/remove_locus_name_from_nexus_lines.py \
+    /path/to/alignment/output \
+    /path/to/alignment/output-renamed \
+    3</pre>
+</div>
+<p>The second line gives the path to the output created during alignment, the third
+line gives the path to store the cleaned alignments, and the third line gives
+the number of taxa in each alignment.</p>
+</div>
+<div class="section" id="alignment-manipulation">
+<h2>Alignment manipulation<a class="headerlink" href="#alignment-manipulation" title="Permalink to this headline">¶</a></h2>
+<p>Many workflows for phylogenetics simply involve converting one alignment format
+to another or changing something about the contents of a given alignment. We
+use many of these manipulations in the next section (see <a class="reference internal" href="#data-analysis"><em>Preparing alignment data for analysis</em></a>),
+as well.</p>
+<div class="section" id="converting-one-alignment-format-to-another">
+<h3>Converting one alignment format to another<a class="headerlink" href="#converting-one-alignment-format-to-another" title="Permalink to this headline">¶</a></h3>
+<p>To convert one alignment type (e.g., nexus) to another (e.g., fasta), we have a
+relative simple bit of code to achieve that process. You can also speed this
+processing step on a multicore machine with the <cite>&#8211;cores</cite> option:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/convert_one_align_to_another.py \
+    /path/to/input/alignments \
+    /path/to/output/alignments \
+    --input-format nexus \
+    --output-format fasta \
+    --cores 8</pre>
+</div>
+<p>You can convert from/to:</p>
+<ol class="arabic simple">
+<li>fasta</li>
+<li>nexus</li>
+<li>phylip</li>
+<li>clustal</li>
+<li>emboss</li>
+<li>stockholm</li>
+</ol>
+</div>
+<div class="section" id="shortening-taxon-names">
+<h3>Shortening taxon names<a class="headerlink" href="#shortening-taxon-names" title="Permalink to this headline">¶</a></h3>
+<p>You can shorten taxon names (e.g. for use with strict phylip) by modifying the
+above command slightly to add <cite>&#8211;shorten-names</cite>:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/convert_one_align_to_another.py \
+    /path/to/input/alignments \
+    /path/to/output/alignments \
+    --input-format nexus \
+    --output-format fasta \
+    --cores 8 \
+    --shorten-names</pre>
+</div>
+</div>
+<div class="section" id="excluding-loci-or-taxa">
+<h3>Excluding loci or taxa<a class="headerlink" href="#excluding-loci-or-taxa" title="Permalink to this headline">¶</a></h3>
+<p>You may want to exclude loci less than a certain length or having fewer than
+a particular number of taxa, or only containing certain taxa.  You can
+accomplish that using:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/filter_alignments.py \
+    /path/to/alignment/output-renamed \
+    --input-format nexus \
+    --containing-data-for genus_species1 genus_species2 \
+    --min-length 100 \
+    --min-taxa 5 \
+    --output /path/to/a/new/directory</pre>
+</div>
+<p>This will filter alignments that do not contain the taxa requested, those
+alignments shorter than 100 bp, and those alignments having fewer than 5 taxa
+(taxa with only missing data are not counted).</p>
+</div>
+<div class="section" id="extracting-taxon-data-from-alignments">
+<h3>Extracting taxon data from alignments<a class="headerlink" href="#extracting-taxon-data-from-alignments" title="Permalink to this headline">¶</a></h3>
+<p>Sometimes you may have alignments from which you want to extract data from a
+given taxon, format the alignment string as fasta, and do something with the
+fasta results:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/extract_taxon_data_from_alignments.py \
+    /path/to/alignment/ \
+    genus_species1 \
+    /path/to/output/file.fasta \
+    --input-format nexus</pre>
+</div>
+</div>
+</div>
+<div class="section" id="preparing-alignment-data-for-analysis">
+<span id="data-analysis"></span><h2>Preparing alignment data for analysis<a class="headerlink" href="#preparing-alignment-data-for-analysis" title="Permalink to this headline">¶</a></h2>
+<p>Formatting data for analysis generally involves slight differences from the
+steps described above.  There are several application-specific programs in
+<a class="reference external" href="https://github.com/faircloth-lab/phyluce">phyluce</a>.</p>
+<div class="section" id="raxml">
+<h3>RAxML<a class="headerlink" href="#raxml" title="Permalink to this headline">¶</a></h3>
+<p>For RAxML, you need a concatenated phylip file.  This is pretty easily created
+if you have an input directory of nexus alignments.  First, make an output
+directory:</p>
+<div class="highlight-python"><pre>mkdir raxml</pre>
+</div>
+<p>Then run:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/format_nexus_files_for_raxml.py \
+    /path/to/alignment/output-renamed \
+    raxml/output-file-name.phylip</pre>
+</div>
+</div>
+<div class="section" id="phylip-cloudforest">
+<span id="strict-phylip"></span><h3>PHYLIP/CloudForest<a class="headerlink" href="#phylip-cloudforest" title="Permalink to this headline">¶</a></h3>
+<p>PHYLIP, PhyML, and other programs like <a class="reference external" href="https://github.com/ngcrawford/CloudForest">CloudForest</a> require input files to be in
+strict phylip format for analysis.  Converting alignment files to this format
+was discussed above, and is simple a matter of (use <cite>&#8211;cores</cite> if you have
+a multicore machine as that will greatly speed processing):</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/convert_one_align_to_another.py \
+    /path/to/input/alignments \
+    /path/to/output/alignments \
+    --input-format nexus \
+    --output-format phylip \
+    --shorten-names</pre>
+</div>
+</div>
+<div class="section" id="mrbayes">
+<h3>MrBayes<a class="headerlink" href="#mrbayes" title="Permalink to this headline">¶</a></h3>
+<p>MrBayes is a little more challenging to run.  This is largely due to the fact
+that we usually estimate the substitution models for all loci, then we partition
+loci by substitution model, concatenate the data, and format an appropriate
+file to be input to MrBayes.</p>
+<p>The tricky part of this process is estimating the locus-specific substitution
+models.  Generally speaking, I do this with <a class="reference external" href="https://github.com/ngcrawford/CloudForest">CloudForest</a> now, then I strip the
+best-fitting substitution model from the <a class="reference external" href="https://github.com/ngcrawford/CloudForest">CloudForest</a> output, and input that
+file to the program that creates a nexus file for MrBayes.</p>
+<p>First, estimate the substitution models using cloudforest (this will also give
+you genetrees for all loci, as a bonus).  You will need your alignments in
+strict phylip format:</p>
+<div class="highlight-python"><pre>python cloudforest/cloudforest_mpi.py \
+    /path/to/strict/phylip/alignments/ \
+    /path/to/store/cloudforest/output/ \
+    genetrees \
+    $HOME/git/cloudforest/cloudforest/binaries/PhyML3linux64 \
+    --parallelism multiprocessing \
+    --cores 8</pre>
+</div>
+<p>In the above, <cite>genetrees</cite> is a keyword that tells <a class="reference external" href="https://github.com/ngcrawford/CloudForest">CloudForest</a> that you mean to
+estimate genetrees (instead of bootstraps).  Depending on the size of your
+dataset (and computer), this may take some time.  Once this is done:</p>
+<div class="highlight-python"><pre>python phyluce/bin/genetrees/split_models_from_genetrees.py \
+    /path/to/cloudforest/output/genetrees.tre \
+    /path/to/output_models.txt</pre>
+</div>
+<p>Now, you&#8217;re ready to go with formatting for MrBayes - note that we&#8217;re inputting
+the path of the models file created above (output_models.txt) on line 3:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/format_nexus_files_for_mrbayes.py \
+    /path/to/input/nexus/ \
+    /path/to/output_models.txt \
+    /path/to/output/mrbayes.nexus \
+    --interleave \
+    --unlink</pre>
+</div>
+<p>This should create a partitioned data file for you. The partitioning will be by
+model, not by locus. Should you want to fully partition by locus (which may
+overparamterize), then you can run:</p>
+<div class="highlight-python"><pre>python phyluce/bin/align/format_nexus_files_for_mrbayes.py \
+    /path/to/input/nexus/ \
+    /path/to/output_models.txt \
+    /path/to/output/mrbayes.nexus \
+    --interleave \
+    --unlink \
+    --fully-partition</pre>
+</div>
+</div>
+<div class="section" id="cloudforest-genetree-species-tree">
+<h3>CloudForest (genetree/species tree)<a class="headerlink" href="#cloudforest-genetree-species-tree" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference external" href="https://github.com/ngcrawford/CloudForest">CloudForest</a> is a program written by Nick Crawford and myself that helps you
+estimate genetrees and perform bootstrap replicates for very large datasets.
+Data input to CloudForest should be in strict phylip format (see
+<a class="reference internal" href="#strict-phylip"><em>PHYLIP/CloudForest</em></a>).  First, as above, run genetree analysis on your data (
+if you ran this above, you don&#8217;t need to run it again).  This will estimate
+the genetrees for each locus in your dataset, using it&#8217;s best fitting
+substitution model):</p>
+<div class="highlight-python"><pre>python cloudforest/cloudforest_mpi.py \
+    /path/to/strict/phylip/alignments/ \
+    /path/to/store/cloudforest/output/ \
+    genetrees \
+    $HOME/git/cloudforest/cloudforest/binaries/PhyML3linux64 \
+    --parallelism multiprocessing \
+    --cores 8</pre>
+</div>
+<p>The, to generate bootstrap replicates, you can run:</p>
+<div class="highlight-python"><pre>python cloudforest/cloudforest_mpi.py \
+    /path/to/strict/phylip/alignments/ \
+    /path/to/store/cloudforest/output/ \
+    bootstraps \
+    $HOME/git/cloudforest/cloudforest/binaries/PhyML3linux64 \
+    --parallelism multiprocessing \
+    --cores 8 \
+    --bootreps 1000 \
+    --genetrees /path/to/store/cloudforest/output/genetrees.tre</pre>
+</div>
+<p><strong>NOTE</strong> that depending on your system, you may need to choose another value
+for the path to PhyML:</p>
+<div class="highlight-python"><pre>$HOME/git/cloudforest/cloudforest/binaries/PhyML3linux64</pre>
+</div>
+</div>
+<div class="section" id="raxml-genetree-species-tree">
+<h3>RaXML (genetree/species tree)<a class="headerlink" href="#raxml-genetree-species-tree" title="Permalink to this headline">¶</a></h3>
+<p>We can also use RaXML to genrate gene trees to turn into a species tree. To keep
+the taxa names similar to what I run through <a class="reference external" href="https://github.com/ngcrawford/CloudForest">CloudForest</a>, I usually input
+strict phylip formatted files to these runs (see <a class="reference internal" href="#strict-phylip"><em>PHYLIP/CloudForest</em></a>).  Once
+that&#8217;s done, you can generate genetrees with:</p>
+<div class="highlight-python"><pre>python phyluce/bin/genetrees/run_raxml_genetrees.py \
+    /path/to/strict/phylip/alignments/ \
+    /path/to/store/raxml/output/ \
+    --outgroup genus_species1 \
+    --cores 12 \
+    --threads 1</pre>
+</div>
+<p>Number of <cite>&#8211;cores</cite> is the number of simultaneous trees to estimate, while
+<cite>&#8211;threads</cite> is the number of threads to use for each tree.  Although somewhat
+counterintuitive, I&#8217;ve found that 1 <cite>&#8211;thread</cite> per locus and many locis being
+processed at once is the fastest route to go.</p>
+<p>Once that&#8217;s finished, you can genrate bootstrap replicates for those same loci:</p>
+<div class="highlight-python"><pre>python phyluce/bin/genetrees/run_raxml_bootstraps.py \
+    /path/to/strict/phylip/alignments/ \
+    /path/to/store/raxml/output/ \
+    --bootreps 100 \
+    --outgroup genus_species1 \
+    --cores 12 \
+    --threads 1</pre>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">UCE Processing for Phylogenomics</a><ul>
+<li><a class="reference internal" href="#probe-sets">Probe sets</a></li>
+<li><a class="reference internal" href="#outgroup-data-and-probe-set-downloads">Outgroup data and probe set downloads</a></li>
+<li><a class="reference internal" href="#indentifying-contigs-matching-uce-loci">Indentifying contigs matching UCE loci</a></li>
+<li><a class="reference internal" href="#the-probe-matches-sqlite-database">The probe.matches.sqlite database</a><ul>
+<li><a class="reference internal" href="#the-matches-table">The <cite>matches</cite> table</a></li>
+<li><a class="reference internal" href="#the-match-map-table">The <cite>match_map</cite> table</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#determining-locus-counts-and-generating-a-taxon-set">Determining locus counts and generating a taxon-set</a><ul>
+<li><a class="reference internal" href="#complete-matrix-data-set">Complete matrix data set</a></li>
+<li><a class="reference internal" href="#incomplete-data-matrix">Incomplete data matrix</a></li>
+<li><a class="reference internal" href="#incorporating-outgroup-other-data">Incorporating outgroup/other data</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#extracting-relevant-fasta-data">Extracting relevant FASTA data</a><ul>
+<li><a class="reference internal" href="#complete-data-matrix">Complete data matrix</a></li>
+<li><a class="reference internal" href="#id1">Incomplete data matrix</a></li>
+<li><a class="reference internal" href="#id2">Incorporating outgroup/other data</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#aligning-and-trimming-fasta-data">Aligning and trimming FASTA data</a><ul>
+<li><a class="reference internal" href="#id3">Complete data matrix</a></li>
+<li><a class="reference internal" href="#id4">Incomplete data matrix</a></li>
+<li><a class="reference internal" href="#alignment-trimming">Alignment trimming</a></li>
+<li><a class="reference internal" href="#sate-alignment">Saté alignment</a></li>
+<li><a class="reference internal" href="#alignment-trimming-only">Alignment trimming only</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#alignment-quality-control">Alignment quality control</a></li>
+<li><a class="reference internal" href="#alignment-name-cleaning">Alignment name cleaning</a></li>
+<li><a class="reference internal" href="#alignment-manipulation">Alignment manipulation</a><ul>
+<li><a class="reference internal" href="#converting-one-alignment-format-to-another">Converting one alignment format to another</a></li>
+<li><a class="reference internal" href="#shortening-taxon-names">Shortening taxon names</a></li>
+<li><a class="reference internal" href="#excluding-loci-or-taxa">Excluding loci or taxa</a></li>
+<li><a class="reference internal" href="#extracting-taxon-data-from-alignments">Extracting taxon data from alignments</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#preparing-alignment-data-for-analysis">Preparing alignment data for analysis</a><ul>
+<li><a class="reference internal" href="#raxml">RAxML</a></li>
+<li><a class="reference internal" href="#phylip-cloudforest">PHYLIP/CloudForest</a></li>
+<li><a class="reference internal" href="#mrbayes">MrBayes</a></li>
+<li><a class="reference internal" href="#cloudforest-genetree-species-tree">CloudForest (genetree/species tree)</a></li>
+<li><a class="reference internal" href="#raxml-genetree-species-tree">RaXML (genetree/species tree)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="pre-processing-assembly.html" title="previous chapter">Read Assembly</a></li>
+      <li>Next: <a href="license.html" title="next chapter">License</a></li>
+  </ul></li>
+</ul>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/uce-processing.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2012, Brant C. Faircloth.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,175 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Software Installation Overview &mdash; phyluce v0.1.0 documentation</title>
+    <link rel="stylesheet" href="_static/flasky.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="top" title="phyluce v0.1.0 documentation" href="index.html" />
+    <link rel="next" title="Study design" href="study-design.html" />
+    <link rel="prev" title="UCEs Are Universal Genetic Markers" href="introduction.html" />
+   
+  
+  <link media="only screen and (max-device-width: 480px)" href="_static/small_flask.css" type= "text/css" rel="stylesheet" />
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="study-design.html" title="Study design"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="introduction.html" title="UCEs Are Universal Genetic Markers"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">phyluce v0.1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="software-installation-overview">
+<h1>Software Installation Overview<a class="headerlink" href="#software-installation-overview" title="Permalink to this headline">¶</a></h1>
+<p><a class="reference external" href="https://github.com/faircloth-lab/phyluce">phyluce</a> (phy-loo-chee) is a software package for analyzing data collected from
+ultraconserved elements in organismal genomes.  The package includes a number of
+tools spanning assembly of raw read data to contigs (using <a class="reference external" href="http://www.ebi.ac.uk/~zerbino/velvet/">velvet</a>) to
+identification of UCE from assembled contigs to alignment generation, trimming,
+and data preparation for analysis.</p>
+<p><a class="reference external" href="https://github.com/faircloth-lab/phyluce">phyluce</a> also has many parts, some necessary for certain operations, and others
+useful only for very specific operations.  <a class="reference external" href="https://github.com/faircloth-lab/phyluce">phyluce</a> is also under constant
+development, and the code-base changes rather rapidly, as we need new features,
+generate new data formats, and fix bugs.</p>
+<p>The code within this package assumes that you have a familiarity with the
+command line (AKA Terminal in OSX) and <strong>all</strong> of the tools within the package
+are driven from the command-line.  This allows us to focus on generating new
+tools which are largely useable across different operating systems, without
+getting bogged down with the intricacies of generating platform-specific
+graphical user interfaces.</p>
+<p>Below, we&#8217;ve outlined the necessary steps for installing the software and
+pre-requisites.  We have focused on installation steps for OSX and Unix/Linux
+because those are the operating systems that we use.</p>
+<p>Installing the necessary pre-requisites is the most challenging part of getting
+the various software components working.  On OSX, we&#8217;ve tried to simplify these
+steps by providing packages through the <a class="reference external" href="http://mxcl.github.com/homebrew/">homebrew</a> package manager. On
+Unix/Linux, many of these packages are available through your
+distribution-specific package manager or you can install from source.</p>
+<div class="section" id="needed-python-packages">
+<h2>Needed Python packages<a class="headerlink" href="#needed-python-packages" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>python 2.7 (installed by default on OSX 10.7+)</li>
+<li>numpy (&gt;= 1.5)</li>
+<li>biopython (&gt;= 1.54)</li>
+<li>seqtools</li>
+<li>dendropy (optional - used in some programs)</li>
+<li>ete2 (optional - used in some programs)</li>
+<li>scipy (optional - used in some programs)</li>
+<li>bx-python (optional - used in some programs)</li>
+</ul>
+</div>
+<div class="section" id="needed-external-applications">
+<h2>Needed external applications<a class="headerlink" href="#needed-external-applications" title="Permalink to this headline">¶</a></h2>
+<p>All external applications should be placed in your <cite>$PATH</cite>, so that they are
+available to the code within the <a class="reference external" href="https://github.com/faircloth-lab/phyluce">PHYLUCE</a> package.</p>
+<ul class="simple">
+<li>lastz</li>
+<li>mafft</li>
+<li>velvet and velvetoptimiser (for contig assembly)</li>
+<li>bioperl (required by velvetoptimiser)</li>
+<li>splitaake (optional - used for demultiplexing Illumina reads)</li>
+<li>illumiprocessor (optional - used for trimming and renaming Illumina reads)</li>
+<li>AMOS (optional - used for coverage calculations of assembled UCE loci)</li>
+<li>muscle (optional - used as an alignment option for UCE contigs)</li>
+<li>dialign (optional - used as an alignment option for UCE contigs)</li>
+<li>saté (optional - used for alternate alignment of UCE contigs)</li>
+<li>raxml (optional - used for tree inference)</li>
+<li>mrbayes (optional - used for tree inference)</li>
+<li>cloudforest (optional - used for tree inference)</li>
+</ul>
+</div>
+<div class="section" id="useful-tools">
+<h2>Useful tools<a class="headerlink" href="#useful-tools" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>&#8220;Kent Source&#8221; packages</li>
+<li>A good text editor (VIM, textmate2, etc.)</li>
+</ul>
+</div>
+</div>
+<div class="section" id="software-installation-osx">
+<h1>Software Installation (OSX)<a class="headerlink" href="#software-installation-osx" title="Permalink to this headline">¶</a></h1>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Software Installation Overview</a><ul>
+<li><a class="reference internal" href="#needed-python-packages">Needed Python packages</a></li>
+<li><a class="reference internal" href="#needed-external-applications">Needed external applications</a></li>
+<li><a class="reference internal" href="#useful-tools">Useful tools</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#software-installation-osx">Software Installation (OSX)</a></li>
+</ul>
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="introduction.html" title="previous chapter">UCEs Are Universal Genetic Markers</a></li>
+      <li>Next: <a href="study-design.html" title="next chapter">Study design</a></li>
+  </ul></li>
+</ul>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/installation.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2012, Brant C. Faircloth.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+    </div>
+  </body>
+</html>
