@@ -152,8 +152,8 @@ spend some time describing the structure and contents.</p>
 <h2>The probe.matches.sqlite database<a class="headerlink" href="#the-probe-matches-sqlite-database" title="Permalink to this headline">¶</a></h2>
 <p><cite>probe.matches.sqlite</cite> is a relational database that summarizes all <strong>valid</strong>
 matches of contigs to UCE loci across the set of taxa that you fed it. The
-database is created by and for <cite>sqlite_</cite>, which is a very handy, portable SQL
-database. For more info on SQL and SQLITE, see <cite>here_</cite>. I&#8217;ll briefly cover the
+database is created by and for <a class="reference external" href="http://www.sqlite.org">sqlite</a>, which is a very handy, portable SQL
+database. For more info on SQL and SQLITE, see this <a class="reference external" href="http://www.sqlite.org/sqlite.html">sqlite-tutorial</a>. I&#8217;ll briefly cover the
 database contents and use below.</p>
 <p>First, to take a look at the contents of the database run:</p>
 <div class="highlight-bash"><div class="highlight"><pre>sqlite3 probe.matches.sqlite
@@ -166,7 +166,7 @@ Enter SQL statements terminated with a ";"
 sqlite&gt;</pre>
 </div>
 <p>It&#8217;s often easier to change some defaults for better viewing, so at the prompt,
-past in the following (for more info on <cite>sqlite_</cite> &#8220;dot&#8221; commands, you can type
+past in the following (for more info on <a class="reference external" href="http://www.sqlite.org">sqlite</a> &#8220;dot&#8221; commands, you can type
 <cite>.help</cite>):</p>
 <div class="highlight-python"><pre>sqlite&gt; .mode columns
 sqlite&gt; .headers on
@@ -295,14 +295,12 @@ file denoting the taxa we want in the data set.  It should look like this:</p>
 <p>Let&#8217;s assume you name this file <cite>datasets.conf</cite>.  Now, you want to run the
 following against this file, along with several other files we&#8217;ve created
 previously:</p>
-<div class="highlight-python"><pre>.. code-block:: bash</pre>
+<div class="highlight-python"><pre>python phyluce/bin/assembly/get_match_counts.py \
+    /path/to/output/lastz/probe.matches.sqlite \
+    /path/to/your/datasets.conf \
+    'dataset1' \
+    --output /path/to/some/output-file/dataset1.conf</pre>
 </div>
-<blockquote>
-<div><dl class="docutils">
-<dt>python phyluce/bin/assembly/get_match_counts.py </dt>
-<dd>/path/to/output/lastz/probe.matches.sqlite /path/to/your/datasets.conf &#8216;dataset1&#8217; &#8211;output /path/to/some/output-file/dataset1.conf</dd>
-</dl>
-</div></blockquote>
 <p>This will basically run a query against the database, and pull out those loci
 for those taxa in the <cite>datasets.conf</cite> file having UCE contigs.  The output will
 look something like:</p>
@@ -381,13 +379,14 @@ genus_species5*</pre>
 </div>
 <p>Then, you need to pass <cite>get_match_counts.py</cite> the location of the
 <cite>probe.matches.sqlite</cite> database previously generated as described in
-<a class="reference internal" href="#contigs-matching"><em>Indentifying contigs matching UCE loci</em></a> or downloaded as part of <a class="reference internal" href="#outgroup-data"><em>Outgroup data and probe set downloads</em></a></p>
-<blockquote>
-<div><dl class="docutils">
-<dt>python phyluce/bin/assembly/get_match_counts.py </dt>
-<dd>/path/to/output/lastz/probe.matches.sqlite /path/to/your/datasets.conf &#8216;dataset3&#8217; &#8211;extend /path/to/some/other/probe.matches.sqlite &#8211;output /path/to/some/output-file/dataset3-with-external.conf</dd>
-</dl>
-</div></blockquote>
+<a class="reference internal" href="#contigs-matching"><em>Indentifying contigs matching UCE loci</em></a> or downloaded as part of <a class="reference internal" href="#outgroup-data"><em>Outgroup data and probe set downloads</em></a>:</p>
+<div class="highlight-python"><pre>python phyluce/bin/assembly/get_match_counts.py \
+    /path/to/output/lastz/probe.matches.sqlite \
+    /path/to/your/datasets.conf \
+    'dataset3' \
+    --extend /path/to/some/other/probe.matches.sqlite \
+    --output /path/to/some/output-file/dataset3-with-external.conf</pre>
+</div>
 <p>To keep all this extension from getting too terribly crazy, I&#8217;ve limited the
 ability to include external data to essentially a single set.  If you have lots
 of data from many different enrichments, you&#8217;ll need to generate a <cite>contigs</cite>
