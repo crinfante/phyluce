@@ -6,7 +6,7 @@ import dendropy
 File: taxon_pairs_freqs.py
 Author: Nicholas Crawford
 
-Created by Brant Faircloth on Wed May  1 12:53:09 EDT 2013
+Created by Nicholas Crawford on Wed May  1 12:53:09 EDT 2013
 Copyright (c) 2012 Nicholas G. Crawford All rights reserved.
 
 Description...
@@ -55,8 +55,11 @@ def print_taxon_ids(args):
     """Print out all the taxon ids in the first taxon."""
 
     trees = dendropy.TreeList()
+
     with open(args.input, mode='r') as fin:
+
         trees.read_from_stream(fin, 'newick')
+
         for label in trees[0].taxon_set.labels():
             args.output.write('{}\n'.format(label))
 
@@ -78,11 +81,13 @@ def calc_split_frequencies(args):
 
 def main():
     args = get_args()
+
     if args.print_taxa is True:
         print_taxon_ids(args)
         sys.exit()
 
-    calc_split_frequencies(args)
+    else:
+        calc_split_frequencies(args)
 
 if __name__ == '__main__':
     main()
